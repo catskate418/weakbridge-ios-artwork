@@ -87,6 +87,7 @@
     <string name="ui_help_music_body">Start music on iPhone, then open the watch music controller. Gesture availability depends on the watch firmware and the active screen.</string>
     <string name="ui_help_notifications">Missing notifications?</string>
     <string name="ui_help_notifications_body">Check app permissions on iPhone, notification previews and Focus settings. WeakBridge can receive only what iPhone shares over Bluetooth.</string>
+    <string name="ui_connect_bonded">Connecting to a paired iPhone already in system Bluetooth. Use this if pairing from the phone never finished.</string>
     <string name="ui_visibility_cancelled">Visibility was not enabled. Approve the system prompt to pair.</string>
     <string name="ui_visibility_unavailable">The visibility prompt is unavailable. Open Bluetooth in the watch settings.</string>
     <string name="ui_visibility_permission">Nearby devices permission is required for visibility.</string>

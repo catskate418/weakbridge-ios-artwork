@@ -6,6 +6,7 @@
     <string name="notification_channel_other">Other iPhone notifications</string>
     <string name="notification_channel_connection">Bridge connection</string>
     <string name="notification_channel_media">iPhone music</string>
+    <string name="notification_channel_app_body">Notifications from %1$s on the paired iPhone</string>
     <string name="notification_private_content">New notification on iPhone</string>
     <plurals name="notification_group_count">
         <item quantity="one">%d notification</item>

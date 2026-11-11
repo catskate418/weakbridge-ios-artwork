@@ -87,6 +87,7 @@
     <string name="ui_help_music_body">Запусти музыку на iPhone и открой плеер часов. Доступность жестов зависит от прошивки и активного экрана.</string>
     <string name="ui_help_notifications">Нет уведомлений?</string>
     <string name="ui_help_notifications_body">Проверь разрешения приложений на iPhone, показ миниатюр и режим фокусирования. Мост получает только те уведомления, которыми делится iPhone.</string>
+    <string name="ui_connect_bonded">Подключение к iPhone, который уже спарен в Bluetooth часов. Нужно, если сопряжение с телефона не завершилось.</string>
     <string name="ui_visibility_cancelled">Видимость не включена. Для сопряжения подтверди системный запрос на часах.</string>
     <string name="ui_visibility_unavailable">Запрос видимости недоступен. Открой Bluetooth в настройках часов.</string>
     <string name="ui_visibility_permission">Для видимости нужно разрешение «Устройства поблизости».</string>

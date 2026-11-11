@@ -11,9 +11,12 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.SystemClock
 import androidx.core.app.NotificationCompat
+import androidx.core.graphics.drawable.IconCompat
 import dev.weakbridge.BridgeApplication
 import dev.weakbridge.R
+import android.graphics.Bitmap
 import dev.weakbridge.ancs.AncsEvent
+import dev.weakbridge.artwork.ArtworkService
 import dev.weakbridge.service.BridgeForegroundService
 import dev.weakbridge.ui.MainActivity
 import java.time.LocalTime
@@ -21,6 +24,7 @@ import java.util.UUID
 
 class NotificationBridge(
     private val context: Context,
+    private val artwork: ArtworkService,
     private val recordEvent: (String) -> Unit = {},
 ) {
     private val manager = context.getSystemService(NotificationManager::class.java)
@@ -31,6 +35,8 @@ class NotificationBridge(
     private val alerts = NotificationAlertPolicy()
     private val rendered = mutableMapOf<Long, Projection>()
     private val summaries = mutableMapOf<String, Summary>()
+    private val appChannels = mutableMapOf<String, String>()
+    private val glyphs = NotificationGlyph()
     private var session = UUID.randomUUID().toString()
     private val openApp by lazy {
         PendingIntent.getActivity(
@@ -51,29 +57,85 @@ class NotificationBridge(
 
     init {
         listOf(
-                "iphone.messages" to R.string.notification_channel_messages,
-                "iphone.calls" to R.string.notification_channel_calls,
-                "iphone.mail" to R.string.notification_channel_mail,
-                "iphone.events" to R.string.notification_channel_events,
-                "iphone.other" to R.string.notification_channel_other,
                 "bridge" to R.string.notification_channel_connection,
                 "media" to R.string.notification_channel_media,
             )
             .forEach { (id, name) ->
-                val channel =
+                manager.createNotificationChannel(
                     NotificationChannel(
                         id,
                         context.getString(name),
-                        if (id == "bridge" || id == "media") NotificationManager.IMPORTANCE_LOW
-                        else NotificationManager.IMPORTANCE_DEFAULT,
+                        NotificationManager.IMPORTANCE_LOW,
                     )
-                if (id.startsWith("iphone.")) channel.enableVibration(true)
-                manager.createNotificationChannel(channel)
+                )
             }
+        // Older releases created five shared category channels, and one build produced per-app ids
+        // with the "app_" prefix doubled. Neither receives anything now, and leaving them behind
+        // shows a confusing pile in the watch's settings. Only those exact patterns are removed:
+        // a blanket sweep would also drop valid channels before they are registered again.
+        manager.notificationChannels
+            .map { it.id }
+            .filter { id -> id.startsWith("iphone.") || id.startsWith("app.app_") }
+            .forEach { manager.deleteNotificationChannel(it) }
         // Remove stale mirrors after process death; private content is kept only in this process.
         manager.activeNotifications
             .filter { it.tag == MIRROR_TAG || it.tag?.startsWith(GROUP_TAG) == true }
             .forEach { manager.cancel(it.tag, it.id) }
+    }
+
+    /**
+     * Wear OS settings list channels individually, so every iPhone application gets its own entry
+     * instead of being merged into a shared category channel. Channels are created on first
+     * contact and bounded: an unbounded pile of channels eventually breaks foreground service
+     * notifications, so the oldest app loses its channel and falls back to a new one.
+     */
+    private fun appChannel(appId: String, appName: String): String {
+        appChannels[appId]?.let {
+            return it
+        }
+        // Bundle ids often start with "app." already, so the channel prefix is not repeated.
+        val slug = appId.lowercase().replace(Regex("[^a-z0-9]+"), "_").trim('_')
+        val base = "app." + slug.removePrefix("app_").take(40)
+        var id = base
+        var suffix = 2
+        while (appChannels.containsValue(id)) id = base + "." + suffix++
+        val channel =
+            NotificationChannel(id, appName, NotificationManager.IMPORTANCE_HIGH).apply {
+                enableVibration(true)
+                enableLights(true)
+                description = context.getString(R.string.notification_channel_app_body, appName)
+            }
+        manager.createNotificationChannel(channel)
+        appChannels[appId] = id
+        if (appChannels.size > MAX_APP_CHANNELS) {
+            val oldest = appChannels.keys.first()
+            val oldId = appChannels.remove(oldest)
+            if (oldId != null) manager.deleteNotificationChannel(oldId)
+        }
+        return id
+    }
+
+    /** Real app icon for the card body; null until it has been downloaded once. */
+    private fun largeIcon(record: NotificationRecord): Bitmap? {
+        if (record.appId == "iphone") return null
+        return artwork.appIcon(record.appId) ?: run {
+            artwork.requestIcon(record.appId, record.appName)
+            null
+        }
+    }
+
+    /**
+     * Status-bar icon for a card: the app's real icon once downloaded, its initials before that.
+     * The system tints small icons, so [NotificationGlyph] reduces the artwork to a readable
+     * silhouette instead of handing over a full-colour square.
+     */
+    private fun smallIcon(record: NotificationRecord): IconCompat {
+        artwork.appIcon(record.appId)?.let { icon -> return glyphs.fromAppIcon(icon) }
+        if (record.appId != "iphone") artwork.requestIcon(record.appId, record.appName)
+        return glyphs.initials(
+            NotificationAppCatalog.initials(record.appId, record.appName),
+            record.category,
+        )
     }
 
     fun publish(event: AncsEvent, attributes: Map<Int, String>, name: String?) {
@@ -127,6 +189,22 @@ class NotificationBridge(
      * Applies local options without reconnecting or reading ANCS again. All republished cards are
      * silent.
      */
+    /**
+     * Makes sure the application has its own channel before any of its cards exist, so the watch's
+     * notification settings list every known source with its own switch.
+     */
+    fun ensureChannel(appId: String, appName: String) {
+        if (appId.isBlank()) return
+        appChannel(appId, appName)
+    }
+
+    /** Repaints existing cards silently, e.g. after an app icon finished downloading. */
+    fun repaint() {
+        if (!canPost()) return
+        forgetRendered()
+        render(null)
+    }
+
     fun refreshSettings() {
         if (!canPost()) {
             forgetRendered()
@@ -199,9 +277,12 @@ class NotificationBridge(
                     listOf(record.subtitle, record.message)
                         .filter { it.isNotBlank() }
                         .joinToString("\n")
+            // The card shows the app's real icon while the status bar keeps a tinted silhouette,
+            // which is the only two-slot combination the platform offers.
             val builder =
-                NotificationCompat.Builder(context, channel(record.category))
-                    .setSmallIcon(NotificationAppCatalog.icon(record.category))
+                NotificationCompat.Builder(context, appChannel(record.appId, record.appName))
+                    .setSmallIcon(smallIcon(record))
+                    .apply { largeIcon(record)?.let(::setLargeIcon) }
                     .setContentTitle(title)
                     .setSubText(record.appName)
                     .setContentText(text)
@@ -214,8 +295,8 @@ class NotificationBridge(
                     .setContentIntent(openApp)
                     .setDeleteIntent(intent(record.uid, "dismiss"))
                     .setPublicVersion(
-                        NotificationCompat.Builder(context, channel(record.category))
-                            .setSmallIcon(NotificationAppCatalog.icon(record.category))
+                        NotificationCompat.Builder(context, appChannel(record.appId, record.appName))
+                            .setSmallIcon(smallIcon(record))
                             .setContentTitle(record.appName)
                             .setContentIntent(openApp)
                             .setContentText(
@@ -268,8 +349,8 @@ class NotificationBridge(
                     )
                 }
             val builder =
-                NotificationCompat.Builder(context, channel(last.category))
-                    .setSmallIcon(NotificationAppCatalog.icon(last.category))
+                NotificationCompat.Builder(context, appChannel(last.appId, last.appName))
+                    .setSmallIcon(smallIcon(last))
                     .setContentTitle(last.appName)
                     .setContentText(count)
                     .setStyle(style)
@@ -340,17 +421,6 @@ class NotificationBridge(
         )
     }
 
-    private fun channel(category: Int) =
-        when (category) {
-            1,
-            2,
-            3 -> "iphone.calls"
-            4 -> "iphone.messages"
-            5 -> "iphone.events"
-            6 -> "iphone.mail"
-            else -> "iphone.other"
-        }
-
     private fun category(category: Int) =
         when (category) {
             1,
@@ -366,6 +436,7 @@ class NotificationBridge(
     companion object {
         private const val MIRROR_TAG = "iphone"
         private const val GROUP_TAG = "iphone.group."
+        private const val MAX_APP_CHANNELS = 40
     }
 }
 

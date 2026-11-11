@@ -104,7 +104,8 @@ class AmsClient(
     }
 
     fun supported(bytes: ByteArray) {
-        state.value = state.value.copy(supported = Ams.commands(bytes))
+        val set = Ams.commands(bytes)
+        state.value = state.value.copy(supported = set)
     }
 
     fun update(bytes: ByteArray) {

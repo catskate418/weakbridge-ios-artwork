@@ -6,6 +6,7 @@
     <string name="notification_channel_other">Другие уведомления iPhone</string>
     <string name="notification_channel_connection">Соединение WeakBridge</string>
     <string name="notification_channel_media">Музыка iPhone</string>
+    <string name="notification_channel_app_body">Уведомления %1$s с подключённого iPhone</string>
     <string name="notification_private_content">Новое уведомление на iPhone</string>
     <plurals name="notification_group_count">
         <item quantity="one">%d уведомление</item>

@@ -9,6 +9,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <application android:name=".BridgeApplication" android:allowBackup="false" android:dataExtractionRules="@xml/data_extraction_rules" android:label="WeakBridge" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher" android:theme="@android:style/Theme.DeviceDefault" android:supportsRtl="true">
         <meta-data android:name="com.google.android.wearable.standalone" android:value="true" />
         <activity android:name=".ui.MainActivity" android:taskAffinity="" android:exported="true">

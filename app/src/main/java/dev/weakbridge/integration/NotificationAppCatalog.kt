@@ -1,8 +1,9 @@
 package dev.weakbridge.integration
 
 import dev.weakbridge.R
+import java.util.Locale
 
-/** Names only; category glyphs are drawn locally and do not use third-party logo assets. */
+/** Names only; glyphs are drawn locally and do not use third-party logo assets. */
 object NotificationAppCatalog {
     data class App(val id: String, val name: String)
 
@@ -48,4 +49,39 @@ object NotificationAppCatalog {
             11 -> R.drawable.ic_notification_music
             else -> R.drawable.ic_notification_message
         }
+
+    private val abbreviations =
+        mapOf(
+            "mobilesms" to "SMS",
+            "mobilemail" to "MAIL",
+            "mobilephone" to "TEL",
+            "messenger" to "MSGR",
+            "instagram" to "INST",
+            "whatsapp" to "WA",
+            "telegraph" to "TG",
+            "calendar" to "CAL",
+            "reminders" to "REM",
+            "discord" to "DISC",
+        )
+
+    /**
+     * Short capitals drawn inside the per-app glyph. ANCS carries only the bundle identifier, so a
+     * local glyph with these initials stands in for the app mark.
+     */
+    fun initials(appId: String, ancsName: String? = null): String {
+        abbreviations[appId.substringAfterLast('.').lowercase(Locale.ROOT)]?.let {
+            return it
+        }
+        names[appId]?.let { return words(it) }
+        // A raw bundle identifier is not a name, so only the last segment is shown.
+        return ancsName?.takeIf { it.isNotBlank() }?.let(::words)
+            ?: appId.substringAfterLast('.').take(4).uppercase(Locale.ROOT).ifBlank { "IOS" }
+    }
+
+    private fun words(value: String): String {
+        val tokens = value.split(Regex("[^\\p{L}\\p{N}]+")).filter { it.isNotEmpty() }
+        if (tokens.isEmpty()) return "iOS"
+        if (tokens.size == 1) return tokens[0].take(3).uppercase(Locale.ROOT)
+        return tokens.take(3).joinToString("") { it.first().uppercase(Locale.ROOT) }
+    }
 }

@@ -66,6 +66,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (intent?.getBooleanExtra(EXTRA_CONNECT_BONDED, false) == true) {
+            // Delivered before the UI exists; the service call needs no activity state.
+            window.decorView.post { connectBonded() }
+        }
         setContent {
             // Recheck permissions after returning from Android settings or a permission prompt.
             val bluetoothGranted =
@@ -85,6 +89,7 @@ class MainActivity : ComponentActivity() {
                 onPermissions = { request.launch(permissions) },
                 onAppSettings = ::openAppSettings,
                 onAction = ::send,
+                onConnectBonded = ::connectBonded,
             )
         }
     }
@@ -138,9 +143,30 @@ class MainActivity : ComponentActivity() {
         } else startBridgeService(action, address)
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        if (intent.getBooleanExtra(EXTRA_CONNECT_BONDED, false)) connectBonded()
+    }
+
+    /** Repair hook: connect to the bonded iPhone from adb so pairing does not need taps. */
+    private fun connectBonded() {
+        val bonded =
+            (getSystemService(android.bluetooth.BluetoothManager::class.java))
+                ?.adapter
+                ?.bondedDevices
+                ?.firstOrNull { it.name?.contains("iPhone", true) == true }
+                ?: return
+        startBridgeService(Bridge.CONNECT, bonded.address)
+    }
+
     private fun startBridgeService(action: String, address: String? = null) {
         startForegroundService(
             Intent(this, Bridge::class.java).setAction(action).putExtra("address", address)
         )
+    }
+
+    private companion object {
+        /** Lets adb trigger "connect to the bonded iPhone" without aiming at a list row. */
+        const val EXTRA_CONNECT_BONDED = "connect_bonded"
     }
 }

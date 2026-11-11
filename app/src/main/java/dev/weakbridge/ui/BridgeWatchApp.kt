@@ -109,6 +109,7 @@ internal fun BridgeWatchApp(
     onPermissions: () -> Unit,
     onAppSettings: () -> Unit,
     onAction: (String, String?) -> Unit,
+    onConnectBonded: () -> Unit = {},
 ) {
     MaterialTheme(
         colors =
@@ -352,6 +353,14 @@ internal fun BridgeWatchApp(
                                         }
                                     }
                                     item { Note(stringResource(R.string.ui_pair_window)) }
+                                    item {
+                                        Action(
+                                            stringResource(R.string.ui_connect_bonded),
+                                            R.drawable.ic_ui_check,
+                                        ) {
+                                            onConnectBonded()
+                                        }
+                                    }
                                     item { Section(deviceListTitle) }
                                     item { Note(stringResource(R.string.ui_devices_help)) }
                                     if (devices.isEmpty())

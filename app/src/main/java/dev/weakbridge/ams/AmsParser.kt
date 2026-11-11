@@ -44,7 +44,38 @@ data class MediaState(
     val playback: Playback? = null,
     val volume: Float? = null,
     val supported: Set<Int> = emptySet(),
+    /** iOS marks explicit tracks in the title; kept as a flag so the card can draw a badge. */
+    val explicit: Boolean = false,
 )
+
+/**
+ * iOS marks explicit tracks with a combining enclosing circle (U+20DD) after a "!". The watch font
+ * has no glyph for it, so it renders as an empty box that looks like a broken icon. The mark is
+ * removed here and reported separately by [isExplicit] so the card can draw a proper badge instead
+ * of spelling it out in the title. Other undrawable characters are dropped too.
+ */
+internal fun displayable(value: String): String {
+    val out = StringBuilder(value.length)
+    for (char in value) {
+        when {
+            char.category == CharCategory.UNASSIGNED -> Unit
+            char.code in 0x20DD..0x20E4 -> Unit
+            char.code in 0xFE00..0xFE0F -> Unit
+            char.code in 0xE0000..0xE007F -> Unit
+            char.isISOControl() -> Unit
+            else -> out.append(char)
+        }
+    }
+    return out.toString()
+        // The enclosing circle is gone by now; the bang that introduced it must not linger either.
+        .replace(Regex("\\s*!\\s*$"), "")
+        .replace(Regex("\\s{2,}"), " ")
+        .trim()
+}
+
+/** True when the title carries iOS's explicit-content mark, with or without the leading bang. */
+internal fun isExplicit(value: String): Boolean =
+    value.any { it.code in 0x20DD..0x20E4 }
 
 object AmsParser {
     fun update(bytes: ByteArray): EntityUpdate? {
@@ -81,8 +112,12 @@ object AmsParser {
         when (u.entity to u.attribute) {
             0 to 0 ->
                 if (u.value != s.player && s.player.isNotEmpty())
-                    MediaState(available = s.available, player = u.value, supported = s.supported)
-                else s.copy(player = u.value)
+                    MediaState(
+                        available = s.available,
+                        player = displayable(u.value),
+                        supported = s.supported,
+                    )
+                else s.copy(player = displayable(u.value))
             0 to 1 -> playback(u.value, now)?.let { s.copy(playback = it) } ?: s
             0 to 2 ->
                 u.value
@@ -105,9 +140,13 @@ object AmsParser {
                             )
                         } else s.copy(queueIndex = index)
                     } ?: s
-            2 to 0 -> s.copy(artist = u.value)
-            2 to 1 -> s.copy(album = u.value)
-            2 to 2 -> s.copy(title = u.value)
+            2 to 0 -> s.copy(artist = displayable(u.value))
+            2 to 1 -> s.copy(album = displayable(u.value))
+            2 to 2 ->
+                s.copy(
+                    title = displayable(u.value),
+                    explicit = isExplicit(u.value),
+                )
             2 to 3 ->
                 s.copy(
                     durationMs =

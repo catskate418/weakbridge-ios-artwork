@@ -15,6 +15,7 @@ class BridgeApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         settings = BridgeSettings(this)
+        observedApps.value = settings.observed()
         status.value = BridgeStatus(detail = getString(R.string.core_ready))
         deviceListTitle.value = getString(R.string.core_devices_unopened)
     }
@@ -24,6 +25,10 @@ data class NotificationApp(val id: String, val name: String)
 
 class BridgeSettings(context: Context) {
     private val prefs = context.getSharedPreferences("bridge", Context.MODE_PRIVATE)
+
+    private companion object {
+        const val MAX_OBSERVED = 64
+    }
     var address: String?
         get() = prefs.getString("address", null)
         set(value) {
@@ -104,6 +109,25 @@ class BridgeSettings(context: Context) {
         if (allowed) blocked.remove(appId) else if (blocked.size < 256) blocked.add(appId)
         prefs.edit().putStringSet("blocked_apps", blocked).apply()
     }
+
+    /**
+     * Applications seen so far, kept as "bundleId\tbody" lines. Icons are warmed for this list on
+     * every connection, which only works if the list outlives the process.
+     */
+    fun rememberObserved(apps: List<NotificationApp>) {
+        val lines = apps.takeLast(MAX_OBSERVED).joinToString("\n") { "${it.id}\t${it.name}" }
+        prefs.edit().putString("observed_apps", lines).apply()
+    }
+
+    fun observed(): MutableList<NotificationApp> =
+        prefs.getString("observed_apps", "")
+            .orEmpty()
+            .lineSequence()
+            .mapNotNull { line ->
+                val id = line.substringBefore('\t').takeIf { it.isNotBlank() } ?: return@mapNotNull null
+                NotificationApp(id, line.substringAfter('\t', id))
+            }
+            .toMutableList()
 
     fun category(id: Int) = prefs.getBoolean("category$id", true)
 

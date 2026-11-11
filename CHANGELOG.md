@@ -1,30 +1,92 @@
 # Changelog
 
-## 0.2.0 — 2026-11-02
+All notable changes to this fork. Every entry is a delta against
+**Weakmafaka/WeakBridge 0.2.0**; the upstream file is kept at
+[`docs/upstream/CHANGELOG.md`](docs/upstream/CHANGELOG.md).
 
-- Reorganize the watch interface into Connection, Settings, Notifications, Diagnostics and Help, with Russian/English resources and rotary navigation.
-- Add per-app filters, category channels, grouping, hidden previews, quiet hours and per-app alert cooldown. Keep content in memory and cap mirrors/groups below the notification budget.
-- Coalesce truncated AMS reads by attribute and recheck command validity after waiting for the GATT queue. Skip obsolete ANCS app-name reads and known blocked updates.
-- Apply ordinary settings without reconnecting; preserve explicit manual reconnect. Avoid repeating the foreground and unchanged notification publications.
-- Add GATT payload/operation counters, duration accounting and a bounded private-content-free diagnostic journal with explicit copy/clear.
+> All changes below were authored by an AI agent (ZCode) in a single session and have **not** been
+> reviewed by a human.
 
+## Unreleased — fork
 
-## 0.1.4 — 2026-11-02
+### Added
 
-First public beta. Dedicated release signing, optimized release build, English and Russian setup guides, and MIT license. Includes the pairing and media fixes from private testing.
+- **Album artwork.** New package `dev.weakbridge.artwork` (5 files, ~800 lines) resolves the cover
+  the watch needs and AMS cannot carry:
+  - `ArtworkService` — pipeline, memory + disk cache, per-track and per-album keys, in-flight
+    deduplication, connectivity check.
+  - `RemoteCatalog` — Deezer first (better Russian coverage, direct CDN image), Apple iTunes second
+    (storefronts `ru` and `us`).
+  - `CoverSources` — local audio files and the watch's own media library, so some tracks need no
+    network at all.
+  - `CoverQueue` — tracks heard while offline, stored in `files/cover_queue.tsv`.
+  - `JsonCursor` — small JSON reader, so no dependency had to be added.
+- **Real app icons in notifications.** `NotificationGlyph` (new, 200 lines) builds an in-memory
+  small icon from either initials or a silhouetted App Store icon, and renders a 320 px large icon
+  for the card. Icons are fetched by bundle id with `country=ru`, falling back to an exact-name
+  search, and cached in `files/icons/`.
+- **Explicit-content badge.** iOS appends U+20DD to explicit titles; the character is stripped, kept
+  as a flag, and drawn as an "E" badge on the artwork and on the media icon.
+- **Offline replay.** `drainQueue()` runs on connect and after each successful lookup, filling
+  covers for tracks that played without a network.
+- **Tests** (71 total, all passing):
+  - `JsonCursorTest` — nested objects, escaped quotes, key/value disambiguation.
+  - `DisplayableTest` — explicit mark handling, variation selectors, Cyrillic.
+  - `CatalogParseTest` — title normalisation and field extraction.
+  - `AppGlyphLabelTest` — initials for known and unknown bundle ids.
 
-## 0.1.3 — 2026-10-31
+### Changed
 
-- Keep the media session active when the queue index changes.
-- Preserve metadata that arrives before the queue update; mark position unknown until fresh playback information arrives.
-- Avoid republishing unchanged media notifications on position and volume updates.
+- `integration/NotificationBridge.kt` (+93 lines) — one `IMPORTANCE_HIGH` channel per iPhone
+  bundle id instead of five shared category channels; real app icon as the card's large icon;
+  silhouetted app icon in the status bar; silent repaint after a late icon download.
+- `integration/MediaSessionBridge.kt` (+120 lines) — real playback position and rate instead of
+  `PLAYBACK_POSITION_UNKNOWN`; artwork attached to `MediaMetadata`; three compact actions; 320 px
+  large icon; badge applied to both card and session metadata; `applyCover` repaint path.
+- `service/BridgeForegroundService.kt` (+26 lines) — wires `ArtworkService` in, warms icons and
+  channels for known apps on connect, drains the cover queue, connects to a bonded phone from a
+  single command.
+- `ams/AmsParser.kt` (+42 lines) — `explicit` flag on `MediaState`; undrawable characters removed
+  from title, artist, album and player names.
+- `BridgeApplication.kt` (+21 lines) — observed app list persisted, so icon warm-up survives a
+  restart.
+- `integration/NotificationAppCatalog.kt` (+34 lines) — short initials per bundle for the fallback
+  icon.
+- `ui/MainActivity.kt` (+23 lines), `ui/BridgeWatchApp.kt` (+9 lines) — "connect to a paired iPhone"
+  action, useful when the pairing window times out.
+- `AndroidManifest.xml` (+2 lines) — `INTERNET` and `ACCESS_NETWORK_STATE` for artwork lookups.
+- `values*/notification_strings.xml`, `values*/ui_strings.xml` — strings for the new channel
+  description and for the connect action.
 
-## 0.1.2 — 2026-10-31
+### Fixed
 
-- Request system Bluetooth discoverability before starting pairing advertisements.
+- **Notification icons were always the launcher arrow.** Slots were pre-registered XML drawables
+  resolved by name; a `<bitmap>` pointing at a vector decodes to `null`, so every card fell back to
+  the app mark. Replaced with `IconCompat.createWithBitmap`.
+- **Channel ids could double their prefix** (`app.app_app_swiftgram_ios`), leaving two channels per
+  app. The id is now built from a de-duplicated slug, and stale `iphone.*` / `app.app_*` channels
+  are deleted on start.
+- **Cover lookups failed for multi-artist tracks.** AMS sends `"ICEGERGERT, OBLADAET"` as one
+  string while catalogs list artists separately; a whole-string containment test rejected the
+  correct match.
+- **Partial AMS metadata poisoned the cover cache.** Artist, album and title arrive as separate
+  events, so a lookup fired with an empty title and its failure was remembered for the session.
 
-## 0.1.1 — 2026-10-31
+### Not working / not attempted
 
-- Optimize the watch build and simplify scrolling in the main menu.
-- Separate saved devices from ANCS scan results.
-- Show permission and service availability separately.
+- **Volume control.** An absolute provider over a 16-step scale is registered and translates slider
+  moves into relative AMS commands, but it could not be exercised without touch input, and the user
+  reports it still does not work.
+- **Samsung media widget cover.** Its controls work; the image stays blank because the system
+  controller expects a media3 session while this app exposes a compat wrapper. A media3 port was not
+  attempted.
+- **Apple Health export.** Requires a separate iOS companion; HealthKit does not accept data from
+  Wear OS.
+- **Artwork for never-played tracks while offline.** No source exists: Apple withholds artwork from
+  Bluetooth accessories, and the Yandex Music offline cache is encrypted.
+
+---
+
+## 0.2.0 — 2026-11-02 (upstream)
+
+See [`docs/upstream/CHANGELOG.md`](docs/upstream/CHANGELOG.md).

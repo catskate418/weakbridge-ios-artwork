@@ -1,123 +1,192 @@
 <div align="center">
   <img src="app/src/main/res/drawable-nodpi/ic_launcher_art.png" width="128" alt="WeakBridge">
-  <h1>WeakBridge</h1>
-  <p>Connect Samsung Galaxy Watch to iPhone for notifications and music controls.</p>
-  <p><a href="https://github.com/Weakmafaka/WeakBridge/releases/latest">Download APK</a> · <a href="docs/README.ru.md">Русский</a> · <a href="https://github.com/Weakmafaka/WeakBridge/issues">Report a bug</a></p>
-  <p>
-    <a href="https://github.com/Weakmafaka/WeakBridge/releases/latest"><img src="https://img.shields.io/github/v/release/Weakmafaka/WeakBridge" alt="Latest release"></a>
-    <img src="https://img.shields.io/badge/platform-Wear%20OS-4285F4" alt="Wear OS">
-    <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-38BDAE" alt="MIT license"></a>
-  </p>
+  <h1>WeakBridge — iPhone bridge for Wear OS, with artwork</h1>
+  <p>Notifications, app icons and album covers from an iPhone to a Wear OS watch.<br/>No iOS app, no cloud.</p>
+  <p><a href="README.ru.md">Русский</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="docs/upstream/README.md">Upstream docs</a></p>
 </div>
 
-WeakBridge is an open-source **Wear OS iPhone Bluetooth bridge** that connects an already configured Samsung Galaxy Watch to an iPhone. Install one app on the watch: no iPhone companion, account or cloud service is required. Music stays on the iPhone or its selected audio output. **ANCS notifications** and **AMS music controls** use the iPhone’s built-in Apple Bluetooth services.
+> [!WARNING]
+> **This fork was written by an AI agent (ZCode) and has not been reviewed by a human.**
+> It builds, 71 unit tests pass, and every change was verified on a real
+> Samsung Galaxy Watch4 Classic (SM-R880, Wear OS 4 / Android 14) paired with an iPhone 15.
+> That is not a code review. Treat it as a working prototype: read the diff, keep the upstream
+> build, report issues — but do not assume correctness.
 
-<p align="center">
-  <img src="docs/images/watch6-home-0.2.0.png" width="220" alt="Connection and service status on Galaxy Watch6">
-  <img src="docs/images/watch6-settings-0.2.0.png" width="220" alt="Connection settings">
-  <img src="docs/images/watch6-quiet-hours-0.2.0.png" width="220" alt="Quiet hours settings">
-</p>
+Fork of [**Weakmafaka/WeakBridge**](https://github.com/Weakmafaka/WeakBridge) 0.2.0 (MIT).
+Upstream mirrors iPhone notifications (ANCS) and playback state (AMS) to a Wear OS watch over plain
+Bluetooth LE — no companion app on the iPhone, no cloud relay, no account.
 
-Screenshots from Galaxy Watch6. The interface is available in English and Russian.
+This fork adds the one thing AMS cannot carry — **album artwork** — together with real app icons,
+and fixes several bugs that only appear after daily use on a Wi-Fi-only watch.
 
-[Project website and FAQ](https://weakmafaka.github.io/WeakBridge/) · [Русская страница](https://weakmafaka.github.io/WeakBridge/ru/)
+<div align="center">
+  <img src="docs/images/watch-explicit-track.png" width="280" alt="Media screen on the watch: title, artist, E badge, controls">
+  <img src="docs/images/media-icon-explicit.png" width="96" alt="Media icon with the explicit badge">
+</div>
 
-## Features
+<p align="center"><em>Left: explicit track on the watch — clean title, <code>E</code> badge, three controls.<br/>
+Right: the media status icon with the badge, as drawn by the app.</em></p>
 
-| | What you can do |
+---
+
+## What this fork changes
+
+Everything below is a delta against upstream 0.2.0, listed by file so the diff is easy to audit.
+The full commit list is in [CHANGELOG.md](CHANGELOG.md).
+
+### 1. Album artwork — new package `dev.weakbridge.artwork`
+
+Upstream leaves the cover area empty. AMS carries only artist, album, title and duration: Apple
+does not send artwork to third-party Bluetooth accessories, so the cover must be resolved on the
+watch itself.
+
+| File | Purpose |
 |---|---|
-| Notifications | Receive new iPhone notifications, updates, removals and actions provided by iOS |
-| Filters | Choose categories and individual apps after their first notification arrives |
-| Alert controls | Group by app, hide message content, set quiet hours and limit repeat alerts |
-| Music | See track information and control play/pause, next/previous and relative volume through the watch's system player |
-| Connection | Reconnect to a saved iPhone, view separate notification/music status and keep the bridge running after closing the app |
-| Diagnostics | Read, copy and clear local counters without logging message content |
+| `artwork/ArtworkService.kt` | Pipeline, two-level cache, in-flight deduplication |
+| `artwork/RemoteCatalog.kt` | Deezer first, then Apple iTunes (`ru` and `us` storefronts) |
+| `artwork/CoverSources.kt` | Local audio files and the watch's media library |
+| `artwork/CoverQueue.kt` | Offline queue for tracks heard without a network |
+| `artwork/JsonCursor.kt` | ~150-line JSON reader — no new dependency |
 
-Version 0.2.0 adds the new interface and notification controls, avoids unnecessary reconnects when changing ordinary settings, and skips obsolete Bluetooth work. See the [changelog](CHANGELOG.md).
+Order: local audio → watch media library → Deezer → Apple. Results are cached in memory, on disk
+per track **and** per album, so another track from a known album paints with no network at all.
+Lookups are serialised: on a fast skip, parallel requests would otherwise race and the card would
+end up showing whichever answer arrived last.
 
-## Compatibility and limits
+**Deezer is the primary source.** The Apple catalog barely indexes Russian releases. Real case:
+`Irkutsk Power / ICEGERGERT, OBLADAET` is absent from Apple and resolves from Deezer on the first
+query.
 
-**Beta, tested with Galaxy Watch6 (SM-R930) and iPhone 13 on iOS 26.0.** Pairing, music controls, the new interface and ordinary use have been confirmed on this combination. Other models, firmware and music apps need testing; long-term battery drain has not been measured.
+### 2. Offline cover queue
 
-| Coverage | Device or requirement |
+The test device is Wi-Fi only, so it is offline most of the time it is being worn. Every track
+without a cover is appended to `files/cover_queue.tsv` (title, artist, album — tab separated).
+A missing network is *not* recorded as a failure: the track stays queued and is fetched in a single
+pass on the next connect. A definitive "no such release" answer does remove the entry.
+
+### 3. Genuinely per-app notification channels
+
+Upstream posts everything into five shared category channels. This fork creates one
+`IMPORTANCE_HIGH` channel per iPhone bundle id (`app.swiftgram_ios`, `app.com_apple_mobilesms`, …),
+so Wear OS settings show every app as its own row with its own switch and vibration.
+
+Two bugs surfaced here: the old shared channels were never really removed from the system's view,
+and one intermediate build doubled the id prefix (`app.app_app_swiftgram_ios`), producing a second
+channel per app. Both patterns are purged on start — and only those two.
+
+### 4. Real app icons
+
+- **Status bar:** a silhouette of the App Store icon. The system uses a small icon as an alpha mask
+  and tints it, so a full-colour icon collapses into a solid square;
+  `NotificationGlyph.silhouette()` maps luminance to alpha and inverts light-background icons.
+- **Card body:** the same icon in colour, as the large icon.
+- Lookup goes by bundle id with `country=ru`. Without it, a Russian Apple account gets an empty
+  result even for apps that exist. The fallback name search accepts only an exact bundle id or a
+  name that *starts with* the query — substring matching had returned *Messenger* for *Swiftgram*,
+  because both contain "gram".
+- Icons are cached in `files/icons/` and survive a restart.
+
+### 5. The explicit-content mark
+
+iOS marks explicit tracks by appending U+20DD (combining enclosing circle) to the title. The watch
+font has no glyph for it, so it rendered as an empty box that looked like a broken icon.
+
+This fork strips the character, keeps the fact as a flag, and draws a proper **"E" badge** on the
+cover and on the media icon. Position matters: the Samsung media controller draws artwork
+full-bleed and centre-crops it to a circle, so the badge sits inside the outer 16% margin.
+
+### 6. Playback position
+
+Upstream reported `PLAYBACK_POSITION_UNKNOWN`, freezing the progress bar for the whole track. Real
+position and rate are now passed through, so progress advances and seeking reflects the phone.
+
+### 7. Media card on every surface
+
+`.setShowActionsInCompactView(previous, play/pause, next)` plus a 320 px large icon, so the
+collapsed card shows three controls and artwork instead of one button on a grey square.
+
+### 8. Volume — not working
+
+AMS offers only relative "volume up" / "volume down". Upstream registered a *relative* provider,
+which the watch's media controller largely ignored. This fork registers an **absolute** provider
+over a 16-step local scale and translates a slider move into that many relative commands.
+
+**Status: unverified and reported broken.** The provider is registered correctly
+(`controlType=ABSOLUTE, max=16`), but volume could not be exercised without touch: the hardware has
+no volume buttons and the controller's slider cannot be driven over adb. The user reports it still
+does not work. Do not treat it as functional.
+
+### 9. Debug and repair entry points
+
+`ensureChannel`, `drainQueue`, `queuedCount`, `online()`, and a one-command connect for an
+already-paired phone — aiming at a list row on a 396 px screen was not practical during testing.
+
+---
+
+## Verified on hardware
+
+| Check | Result |
 |---|---|
-| Confirmed test combination | Samsung Galaxy Watch6 (SM-R930), iPhone 13, iOS 26.0 |
-| Watch minimum | Already configured Wear OS watch with Android 13 / API 33+ |
-| Other hardware and apps | Separate device/firmware/music-app testing required |
+| Pairing with iPhone 15 | `Connected`, notifications `Ready`, music `Ready` |
+| Cover for a Russian track | 500×500 resolved via Deezer, cached on disk |
+| Cover for an unseen album | queued in `cover_queue.tsv`, filled when the network returns |
+| Explicit track | title clean, `E` badge visible on the watch |
+| App icon | `icon=Icon(typ=BITMAP size=96x96)` in the notification record |
+| Channels | only `bridge`, `media`, `app.swiftgram_ios`… remain active |
+| Volume | **not working** |
+| Samsung media widget | controls work, cover stays blank |
 
-Requires Android 13 / API 33 or later on an already configured watch. WeakBridge uses Apple's ANCS and AMS services. It does not set up a factory-reset watch, replace Galaxy Wearable, stream audio, sync health data or send arbitrary message replies. Notification actions depend on what iOS supplies. Gestures depend on watch firmware; double pinch in AOD and global fist-to-pause are not provided by this app.
+Unit tests: 71, all passing (`./gradlew :app:testDebugUnitTest`).
 
-## Install
-
-1. Download `WeakBridge-0.2.0.apk` from [Releases](https://github.com/Weakmafaka/WeakBridge/releases/latest).
-2. Enable Developer options and Wireless debugging on the watch. Connect the watch and computer to the same Wi-Fi network.
-3. Use the addresses and ports displayed on the watch:
-
-```sh
-adb pair WATCH_IP:PAIRING_PORT
-adb connect WATCH_IP:DEBUG_PORT
-adb install -r WeakBridge-0.2.0.apk
-```
-
-The pairing and connection ports differ. Turn Wireless debugging off after installation. APK checksums are attached to the release as `SHA256SUMS.txt`.
-
-**Updating 0.1.4:** install with `adb install -r`; the release signing key is unchanged. Settings are retained.
-
-**Coming from a private development build:** its signing key differs from the public APK. If Android reports `INSTALL_FAILED_UPDATE_INCOMPATIBLE`, changing to the public version requires uninstalling the private app, which removes app settings. The Bluetooth bond can remain; select your iPhone again after installation.
-
-## Connect Samsung Galaxy Watch to iPhone
-
-1. Open WeakBridge and allow Nearby devices and notifications.
-2. Open **Connection → Connect iPhone** and approve the system request to make the watch discoverable for two minutes.
-3. On iPhone, open **Settings → Bluetooth**, select the watch and confirm the matching codes on both devices.
-4. Allow notification sharing on iPhone. Enable **Share System Notifications** in the watch's Bluetooth entry if shown.
-5. In WeakBridge's **Connection** screen, open the saved-device list and select your iPhone. Use **Reconnect** for an already selected phone.
-6. Send a new notification and start music to check both services.
-
-The watch keeps its Bluetooth name. The optional compatible-device scan is a diagnostic tool; an empty result does not prove the iPhone is incompatible. [Russian setup and troubleshooting](docs/README.ru.md).
-
-## Galaxy Watch iOS notifications: common questions
-
-### Does Galaxy Watch6 work with iPhone through WeakBridge?
-
-WeakBridge has been tested with Samsung Galaxy Watch6 (SM-R930) and iPhone 13 on iOS 26.0. It adds notification mirroring and music controls to an already configured watch. It does not restore the full Galaxy Wearable feature set on iOS.
-
-### Do I need to install an iPhone app?
-
-No. One APK runs on the watch and uses the iPhone's built-in Apple Notification Center Service (ANCS) and Apple Media Service (AMS) over Bluetooth. There is no companion app, account or cloud relay.
-
-### Which notifications and music features are supported?
-
-The watch receives new notifications that iOS shares, including updates, removals and supported actions. Filters, grouping, quiet hours and hidden previews are configured on the watch. Music controls include play/pause, track changes and relative volume; audio stays on the iPhone or its chosen output. Arbitrary text replies, audio streaming and health sync are not supported.
-
-### Can I set up a factory-reset Galaxy Watch with only an iPhone?
-
-No. The watch must already be configured and run Android 13 / API 33 or later. Only Watch6 is confirmed in this project's device testing; other Wear OS models need separate verification.
-
-## Privacy and battery
-
-Notification content and observed app names stay in memory and Android's notification system; there is no persistent message history. Only preferences, blocked app identifiers and the selected Bluetooth device are stored. There is no Internet permission, analytics or account system.
-
-The low-power BLE design is event-driven, with no continuous scan, periodic keepalive or permanent wake lock. Recovery attempts are bounded. Version 0.2.0 reduces redundant work, but no battery-life percentage is claimed. See [power design and measurement](BATTERY_OPTIMIZATION.md) for retry limits, LOW_POWER connection hints and reproducible battery-test scenarios. These design choices still need long-term battery measurements.
+---
 
 ## Build
 
-Use **JDK 17**, **Android SDK 35** and **Build Tools 35.0.0**. Set `ANDROID_HOME` or your SDK path in `local.properties`.
+Requires **JDK 17**, **Android SDK 35** and Build Tools 35.0.0.
 
 ```sh
-./gradlew :app:assembleWear :app:testDebugUnitTest :app:lintWear
+echo "sdk.dir=/path/to/android-sdk" > local.properties
+./gradlew :app:assembleWear :app:testDebugUnitTest
+# app/build/outputs/apk/wear/app-wear.apk
 ```
 
-The optimized local build is `app/build/outputs/apk/wear/app-wear.apk`, signed with your development certificate. Use it when evaluating performance; an unoptimized debug build is not representative.
+The signing key is yours, so this build replaces the upstream app rather than installing beside it.
+`INSTALL_FAILED_UPDATE_INCOMPATIBLE` means the old package must be uninstalled first.
 
-For a signed release, set `WEAKBRIDGE_KEYSTORE`, `WEAKBRIDGE_KEY_ALIAS`, `WEAKBRIDGE_STORE_PASSWORD` and `WEAKBRIDGE_KEY_PASSWORD`, then run `./gradlew :app:assembleRelease`. Without those variables, release output is unsigned. Signing keys are not distributed.
+## Install
 
-## Contribute
+Enable developer options and wireless debugging on the watch:
 
-[Report a bug](https://github.com/Weakmafaka/WeakBridge/issues/new/choose) with your device models, OS versions and reproduction steps. Remove private messages and device addresses before attaching logs or screenshots.
+```sh
+adb pair <IP>:<PAIRING_PORT>
+adb connect <IP>:<DEBUG_PORT>
+adb install -r app/build/outputs/apk/wear/app-wear.apk
+```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md), [architecture](ARCHITECTURE.md) and [testing](TESTING.md). If the app is useful to you, a GitHub star helps other watch owners find it.
+Open WeakBridge, allow **Nearby devices** and **Notifications**, then **Connection → Connect iPhone**
+and confirm the pairing prompt on both devices. iOS shares notifications only with a bonded
+accessory that has system-notification sharing enabled.
 
-## License
+## Limits — none of these are bugs to report
 
-[MIT](LICENSE). Dependency licenses are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+- **Artwork for a track that has never played, while offline, is impossible.** Apple does not send
+  it and the Yandex Music offline cache holds encrypted ExoPlayer chunks with no readable audio or
+  tags (verified by inspecting the files). With no network there is no source.
+- **The Samsung media *widget* keeps a blank cover.** Its controls work; only the image is missing.
+  The system controller reads `ALBUM_ART` but expects a media3 session, while this app exposes a
+  compat wrapper. Fixing it means porting the media session to media3 — not attempted here.
+- **No message replies.** ANCS can only press actions the sender declared.
+- **No Apple Health export.** HealthKit accepts data only from an app on the iPhone, so this needs a
+  separate Swift companion rather than a change on the watch.
+
+## Licence
+
+MIT, inherited from upstream. See [LICENSE](LICENSE) and
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Upstream copyright: Copyright (c) 2026 Weakmafaka. Changes in this fork: 2026, AI agent.
+
+## Upstream references
+
+- [Weakmafaka/WeakBridge](https://github.com/Weakmafaka/WeakBridge)
+- [Apple Notification Center Service](https://developer.apple.com/library/archive/documentation/CoreBluetooth/Reference/AppleNotificationCenterServiceSpecification/Specification/Specification.html)
+- [Apple Media Service](https://developer.apple.com/library/archive/documentation/CoreBluetooth/Reference/AppleMediaService_Reference/Specification/Specification.html)

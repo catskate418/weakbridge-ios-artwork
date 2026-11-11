@@ -11,6 +11,7 @@ import androidx.core.app.NotificationCompat
 import dev.weakbridge.*
 import dev.weakbridge.ams.*
 import dev.weakbridge.ancs.*
+import dev.weakbridge.artwork.ArtworkService
 import dev.weakbridge.ble.*
 import dev.weakbridge.diagnostics.BridgeDiagnostics
 import dev.weakbridge.integration.*
@@ -29,6 +30,7 @@ class BridgeForegroundService : Service() {
     private lateinit var diagnostics: BridgeDiagnostics
     private lateinit var notifications: NotificationBridge
     private lateinit var media: MediaSessionBridge
+    private lateinit var artwork: ArtworkService
     private var ancs: AncsClient? = null
     private var ams: AmsClient? = null
     private var mediaCollector: Job? = null
@@ -57,8 +59,13 @@ class BridgeForegroundService : Service() {
         diagnostics = BridgeDiagnostics(app.settings)
         diagnostics.event("service_created")
         devices = BleDeviceRepository(this, scope, diagnostics)
-        notifications = NotificationBridge(this, diagnostics::event)
-        media = MediaSessionBridge(this, { ams?.command(it) }, diagnostics::event)
+        artwork = ArtworkService(this)
+        notifications = NotificationBridge(this, artwork, diagnostics::event)
+        media = MediaSessionBridge(this, { ams?.command(it) }, artwork, diagnostics::event)
+        // A late cover republishes the card that was waiting for it.
+        artwork.onCover = { _, bitmap -> scope.launch { media.applyCover(bitmap) } }
+        // A downloaded icon repaints the cards that were showing initials.
+        artwork.onIcon = { _, _ -> scope.launch { notifications.repaint() } }
         connection =
             BleConnectionManager(
                 this,
@@ -288,6 +295,7 @@ class BridgeForegroundService : Service() {
         if (mediaChanged && app.settings.enabled) {
             // Change subscriptions as one fresh setup; never cancel an in-flight GATT read
             // and continue on the same potentially ambiguous response stream.
+            if (!app.settings.media) media.update(MediaState())
             reconnect(force = true)
             return
         }
@@ -341,11 +349,17 @@ class BridgeForegroundService : Service() {
                         val entry =
                             NotificationApp(id, NotificationAppCatalog.displayName(id, name))
                         val existing = app.observedApps.value
-                        if (existing.firstOrNull { it.id == id } != entry)
-                            app.observedApps.value =
+                        if (existing.firstOrNull { it.id == id } != entry) {
+                            val updated =
                                 (existing.filterNot { it.id == id } + entry)
                                     .takeLast(128)
                                     .sortedBy { it.name.lowercase() }
+                            app.observedApps.value = updated
+                            app.settings.rememberObserved(updated)
+                        }
+                        // Warm the icon cache on first sight, so the card has the real mark the
+                        // next time this app posts without waiting for a download.
+                        artwork.requestIcon(id, entry.name)
                     },
                 )
             ancs!!.start()
@@ -363,6 +377,14 @@ class BridgeForegroundService : Service() {
             hasAncs,
             hasAms,
         )
+        // Apps seen in earlier sessions get their icon warmed and their channel registered now,
+        // so settings shows them and a card posted later never waits for a download.
+        app.observedApps.value.forEach {
+            notifications.ensureChannel(it.id, it.name)
+            artwork.requestIcon(it.id, it.name)
+        }
+        // Tracks heard while the watch was offline get their covers now that it is connected.
+        artwork.drainQueue()
         stable =
             scope.launch {
                 delay(120_000)
