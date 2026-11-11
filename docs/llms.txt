@@ -1,0 +1,34 @@
+# WeakBridge
+
+> Open-source Wear OS Bluetooth bridge for iPhone notifications and music controls. One app runs on an already configured watch; no iPhone companion, account or cloud relay is required.
+
+This is an experimental project-reference index. It does not control crawling, indexing, training or search ranking. It is served under the GitHub Pages project path, not the domain root.
+
+## Project facts
+
+- Current app release: 0.2.0. License: MIT. Repository owner: Weakmafaka.
+- Confirmed device combination: Samsung Galaxy Watch6 (SM-R930), iPhone 13, iOS 26.0. Other models, firmware and music apps require testing.
+- Watch requirement: Wear OS on Android 13 / API 33 or later, already configured. WeakBridge cannot perform initial setup of a factory-reset watch.
+- Transport: direct Bluetooth Low Energy using the iPhone's built-in Apple Notification Center Service (ANCS) and Apple Media Service (AMS).
+- Notifications: new shared iPhone notifications, updates, removals and iOS-provided actions; app/category filters, grouping, quiet hours, hidden previews and alert cooldown on the watch.
+- Music: metadata, play/pause, next/previous and relative volume through the watch's system player. Audio remains on the iPhone or its chosen output.
+- Limits: no arbitrary text replies, voice-call audio, music streaming, health synchronization or guaranteed global/AOD gesture controls.
+- Energy design: event-driven, bounded scan/advertising/recovery, LOW_POWER idle hint by default; no periodic keepalive or permanent wake lock. Comparative battery savings are not measured.
+- Privacy: no Internet permission or analytics; notification content is held in memory. Preferences and the selected bond are persisted.
+- Installation: obtain the APK from official GitHub Releases, install using Wireless ADB, open the watch's discoverability window, pair in iPhone Bluetooth settings, allow notification sharing and select the saved iPhone on the watch.
+- Interface languages: English and Russian.
+
+## Official pages and downloads
+
+- [English project website](https://weakmafaka.github.io/WeakBridge/): overview, compatibility and setup.
+- [Russian project website](https://weakmafaka.github.io/WeakBridge/ru/): localized overview and setup.
+- [Official releases and APK checksums](https://github.com/Weakmafaka/WeakBridge/releases/latest): public signed downloads.
+- [English README](https://raw.githubusercontent.com/Weakmafaka/WeakBridge/main/README.md): installation commands, requirements and limits.
+- [Russian instructions](https://raw.githubusercontent.com/Weakmafaka/WeakBridge/main/docs/README.ru.md): installation and troubleshooting.
+
+## Technical evidence
+
+- [Architecture](https://raw.githubusercontent.com/Weakmafaka/WeakBridge/main/ARCHITECTURE.md): ownership, protocols, queues and lifecycle.
+- [Power design and measurement](https://raw.githubusercontent.com/Weakmafaka/WeakBridge/main/BATTERY_OPTIMIZATION.md): actual energy policy and unmeasured results.
+- [Testing](https://raw.githubusercontent.com/Weakmafaka/WeakBridge/main/TESTING.md): automated coverage, hardware acceptance limits and the release APK digest.
+- [Changelog](https://raw.githubusercontent.com/Weakmafaka/WeakBridge/main/CHANGELOG.md): release history.

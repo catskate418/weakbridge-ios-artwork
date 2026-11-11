@@ -1,0 +1,16 @@
+<resources>
+    <string name="notification_channel_messages">Сообщения iPhone</string>
+    <string name="notification_channel_calls">Звонки iPhone</string>
+    <string name="notification_channel_mail">Почта iPhone</string>
+    <string name="notification_channel_events">Напоминания iPhone</string>
+    <string name="notification_channel_other">Другие уведомления iPhone</string>
+    <string name="notification_channel_connection">Соединение WeakBridge</string>
+    <string name="notification_channel_media">Музыка iPhone</string>
+    <string name="notification_private_content">Новое уведомление на iPhone</string>
+    <plurals name="notification_group_count">
+        <item quantity="one">%d уведомление</item>
+        <item quantity="few">%d уведомления</item>
+        <item quantity="many">%d уведомлений</item>
+        <item quantity="other">%d уведомления</item>
+    </plurals>
+</resources>

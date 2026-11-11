@@ -1,0 +1,14 @@
+<resources>
+    <string name="notification_channel_messages">iPhone messages</string>
+    <string name="notification_channel_calls">iPhone calls</string>
+    <string name="notification_channel_mail">iPhone mail</string>
+    <string name="notification_channel_events">iPhone reminders</string>
+    <string name="notification_channel_other">Other iPhone notifications</string>
+    <string name="notification_channel_connection">Bridge connection</string>
+    <string name="notification_channel_media">iPhone music</string>
+    <string name="notification_private_content">New notification on iPhone</string>
+    <plurals name="notification_group_count">
+        <item quantity="one">%d notification</item>
+        <item quantity="other">%d notifications</item>
+    </plurals>
+</resources>

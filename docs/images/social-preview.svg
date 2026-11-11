@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title description">
+  <title id="title">WeakBridge — Galaxy Watch and iPhone</title>
+  <desc id="description">ANCS notifications and AMS music controls. One app on an already configured watch, without an iPhone companion.</desc>
+  <rect width="1200" height="630" fill="#0a1015"/>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <rect x="64" y="58" width="58" height="58" rx="17" fill="#91dfc2"/>
+    <text x="93" y="99" text-anchor="middle" font-size="38" font-weight="700" fill="#0a1015">W</text>
+    <text x="140" y="101" font-size="43" font-weight="700" fill="#f0f5f4">WeakBridge</text>
+    <text x="64" y="235" font-size="64" font-weight="700" letter-spacing="-2" fill="#f0f5f4">Galaxy Watch</text>
+    <text x="64" y="313" font-size="64" font-weight="700" letter-spacing="-2" fill="#91dfc2">to iPhone.</text>
+    <text x="64" y="388" font-size="29" fill="#a9b9c1">ANCS notifications · AMS music controls</text>
+    <text x="64" y="433" font-size="27" fill="#a9b9c1">One watch app. No iPhone companion.</text>
+    <path d="M64 497h1072" stroke="#28363e" stroke-width="2"/>
+    <text x="64" y="551" font-size="23" fill="#a9b9c1">Open source · Bluetooth LE · Already configured watch required</text>
+    <text x="1136" y="551" text-anchor="end" font-size="23" font-weight="700" fill="#91dfc2">MIT</text>
+  </g>
+  <g fill="none" stroke="#91dfc2" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="850" y="192" width="102" height="178" rx="22"/>
+    <path d="M888 211h26"/>
+    <rect x="1002" y="229" width="119" height="119" rx="33"/>
+    <path d="M1034 229v-28h55v28m-55 119v28h55v-28m-199 23q118 102 221-22" stroke="#68c8ed"/>
+  </g>
+</svg>

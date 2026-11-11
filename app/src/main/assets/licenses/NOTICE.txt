@@ -1,0 +1,10 @@
+WeakBridge
+Copyright (c) 2026 Weakmafaka
+MIT License (see MIT.txt)
+
+Runtime libraries:
+AndroidX — The Android Open Source Project, Apache License 2.0.
+Kotlin and kotlinx.coroutines — JetBrains and contributors, Apache License 2.0.
+
+Source and dependency declarations:
+https://github.com/Weakmafaka/WeakBridge

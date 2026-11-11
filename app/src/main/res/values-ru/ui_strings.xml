@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ui_connection">Подключение</string>
+    <string name="ui_settings">Настройки</string>
+    <string name="ui_notifications">Уведомления</string>
+    <string name="ui_music">Музыка</string>
+    <string name="ui_help">Как подключить</string>
+    <string name="ui_diagnostics">Диагностика</string>
+    <string name="ui_back">Назад</string>
+    <string name="ui_cancel">Отмена</string>
+    <string name="ui_confirm">Подтвердить</string>
+    <string name="ui_connected">Подключено</string>
+    <string name="ui_disconnected">Не подключено</string>
+    <string name="ui_connecting">Подключение…</string>
+    <string name="ui_pairing">Сопряжение</string>
+    <string name="ui_scanning">Поиск iPhone</string>
+    <string name="ui_error">Нужна помощь с подключением</string>
+    <string name="ui_ready_body">Связь с iPhone установлена. Состояние сервисов — ниже.</string>
+    <string name="ui_disconnected_body">Подключи iPhone, чтобы получать уведомления и управлять музыкой.</string>
+    <string name="ui_connecting_body">Держи iPhone рядом. Настраиваем доступ к сервисам.</string>
+    <string name="ui_pairing_body">Открой Настройки → Bluetooth на iPhone. Выбери часы и подтверди код на обоих устройствах.</string>
+    <string name="ui_scanning_body">Поиск длится до 20 секунд. В списке — устройства с совместимым Bluetooth-сервисом.</string>
+    <string name="ui_error_body">Проверь Bluetooth, разрешения и выбранный iPhone. Подробности — в диагностике.</string>
+    <string name="ui_connect_iphone">Подключить iPhone</string>
+    <string name="ui_reconnect">Подключить снова</string>
+    <string name="ui_permissions">Разрешить доступ</string>
+    <string name="ui_permissions_body">«Устройства поблизости» нужны для Bluetooth. Разрешение на уведомления позволяет показывать сообщения iPhone на часах.</string>
+    <string name="ui_saved_device">Сохранённый iPhone</string>
+    <string name="ui_no_saved_device">iPhone ещё не выбран</string>
+    <string name="ui_saved_devices">Сохранённые устройства</string>
+    <string name="ui_devices_help">Выбирай только свой iPhone. Если его нет в списке, сначала выполни сопряжение.</string>
+    <string name="ui_no_devices">В списке пока нет устройств</string>
+    <string name="ui_refresh_devices">Обновить список</string>
+    <string name="ui_scan">Поиск совместимых устройств</string>
+    <string name="ui_scan_note">На время поиска текущая связь моста будет закрыта — до 20 секунд.</string>
+    <string name="ui_pair_window">Подтверди видимость на часах. Окно сопряжения открывается на две минуты.</string>
+    <string name="ui_forget">Забыть выбранный iPhone</string>
+    <string name="ui_disconnect">Выключить мост</string>
+    <string name="ui_forget_confirm">Забыть выбор iPhone? Само Bluetooth-сопряжение останется в системе.</string>
+    <string name="ui_disconnect_confirm">Выключить мост и автоматический запуск? Подключить его снова можно в любой момент.</string>
+    <string name="ui_disabled">Выключено</string>
+    <string name="ui_service_ready">Готово</string>
+    <string name="ui_service_waiting">Ожидание iPhone</string>
+    <string name="ui_service_setup">Настраивается</string>
+    <string name="ui_service_missing">Нет доступа от iPhone</string>
+    <string name="ui_service_permission">Нужно разрешение</string>
+    <string name="ui_auto_reconnect">Автосвязь</string>
+    <string name="ui_auto_reconnect_body">Восстанавливать связь после разрыва.</string>
+    <string name="ui_media_setting">Управление музыкой</string>
+    <string name="ui_media_setting_body">Управляй музыкой iPhone в плеере часов.</string>
+    <string name="ui_low_power">Экономичная связь</string>
+    <string name="ui_low_power_body">После подключения снижать приоритет Bluetooth-связи.</string>
+    <string name="ui_group_notifications">Группировать по приложениям</string>
+    <string name="ui_group_notifications_body">Собирать сообщения приложения в одну группу.</string>
+    <string name="ui_hide_content">Скрывать содержимое</string>
+    <string name="ui_hide_content_body">Показывать название приложения без текста сообщения.</string>
+    <string name="ui_app_filters">Приложения</string>
+    <string name="ui_app_filters_body">Выбери, какие приложения могут присылать уведомления на часы.</string>
+    <string name="ui_no_apps">Приложения появятся здесь после первого полученного уведомления.</string>
+    <string name="ui_categories">Категории</string>
+    <string name="ui_categories_body">Категорию назначает iPhone. Фильтр по приложению позволяет выбрать точнее.</string>
+    <string name="ui_quiet_hours">Тихие часы</string>
+    <string name="ui_quiet_hours_body">Получать уведомления без вибрации в выбранное время.</string>
+    <string name="ui_quiet_start">Начало</string>
+    <string name="ui_quiet_end">Окончание</string>
+    <string name="ui_quiet_equal">Одинаковое время начала и окончания — тишина весь день.</string>
+    <string name="ui_cooldown">Повторные сигналы</string>
+    <string name="ui_cooldown_body">Минимальный интервал между вибрациями одного приложения. Сообщения продолжают приходить.</string>
+    <string name="ui_no_cooldown">Каждое новое уведомление</string>
+    <string name="ui_seconds">%1$d с</string>
+    <string name="ui_choose_hour">Выбери час</string>
+    <string name="ui_diagnostics_toggle">Собирать диагностику</string>
+    <string name="ui_diagnostics_body">Только локальные счётчики, без текста сообщений. Открой этот экран снова, чтобы обновить снимок.</string>
+    <string name="ui_service_stopped">Служба моста остановлена.</string>
+    <string name="ui_latest_event">Последнее событие связи</string>
+    <string name="ui_copy_diagnostics">Скопировать диагностику</string>
+    <string name="ui_copied">Скопировано</string>
+    <string name="ui_version">Версия %1$s</string>
+    <string name="ui_standalone">Одно приложение. Только на часах.</string>
+    <string name="ui_help_step_one">1 · Разреши доступ</string>
+    <string name="ui_help_step_one_body">Разреши доступ к устройствам поблизости и уведомлениям на часах.</string>
+    <string name="ui_help_step_two">2 · Выполни сопряжение</string>
+    <string name="ui_help_step_two_body">Нажми «Подключить iPhone» и подтверди видимость. В Настройках iPhone → Bluetooth выбери часы и подтверди совпадающие коды.</string>
+    <string name="ui_help_step_three">3 · Разреши уведомления</string>
+    <string name="ui_help_step_three_body">На iPhone открой сведения о часах в Bluetooth и разреши системные уведомления. Вернись сюда и выбери iPhone в сохранённых устройствах.</string>
+    <string name="ui_help_music">Музыка и жесты</string>
+    <string name="ui_help_music_body">Запусти музыку на iPhone и открой плеер часов. Доступность жестов зависит от прошивки и активного экрана.</string>
+    <string name="ui_help_notifications">Нет уведомлений?</string>
+    <string name="ui_help_notifications_body">Проверь разрешения приложений на iPhone, показ миниатюр и режим фокусирования. Мост получает только те уведомления, которыми делится iPhone.</string>
+    <string name="ui_visibility_cancelled">Видимость не включена. Для сопряжения подтверди системный запрос на часах.</string>
+    <string name="ui_visibility_unavailable">Запрос видимости недоступен. Открой Bluetooth в настройках часов.</string>
+    <string name="ui_visibility_permission">Для видимости нужно разрешение «Устройства поблизости».</string>
+    <string-array name="ui_notification_categories">
+        <item>Другое</item>
+        <item>Входящие звонки</item>
+        <item>Пропущенные звонки</item>
+        <item>Голосовая почта</item>
+        <item>Социальные сети</item>
+        <item>Расписание</item>
+        <item>Почта</item>
+        <item>Новости</item>
+        <item>Здоровье</item>
+        <item>Работа</item>
+        <item>Местоположение</item>
+        <item>Развлечения</item>
+    </string-array>
+    <string name="ui_permission_settings">Разрешения в Android</string>
+    <string name="ui_clear_counters">Очистить счётчики</string>
+</resources>
